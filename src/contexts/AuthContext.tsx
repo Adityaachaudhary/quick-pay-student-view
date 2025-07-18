@@ -86,12 +86,35 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (e.key === 'students') {
         const updatedStudents = e.newValue ? JSON.parse(e.newValue) : [];
         setStudents(updatedStudents);
+        
+        // Update current user if their data changed
+        if (currentUser) {
+          const updatedCurrentUser = updatedStudents.find((s: Student) => s.id === currentUser.id);
+          if (updatedCurrentUser) {
+            setCurrentUser(updatedCurrentUser);
+            localStorage.setItem('currentUser', JSON.stringify(updatedCurrentUser));
+          }
+        }
+      }
+    };
+
+    // Also listen for custom payment events
+    const handlePaymentUpdate = (e: CustomEvent) => {
+      if (e.detail && currentUser && e.detail.userId === currentUser.id) {
+        const updatedUser = { ...currentUser, feesPaid: true };
+        setCurrentUser(updatedUser);
+        localStorage.setItem('currentUser', JSON.stringify(updatedUser));
       }
     };
 
     window.addEventListener('storage', handleStorageChange);
-    return () => window.removeEventListener('storage', handleStorageChange);
-  }, []);
+    window.addEventListener('paymentCompleted', handlePaymentUpdate as EventListener);
+    
+    return () => {
+      window.removeEventListener('storage', handleStorageChange);
+      window.removeEventListener('paymentCompleted', handlePaymentUpdate as EventListener);
+    };
+  }, [currentUser]);
 
   const saveStudents = (updatedStudents: Student[]) => {
     setStudents(updatedStudents);
@@ -174,6 +197,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     saveStudents(updatedStudents);
     setCurrentUser(updatedUser);
     localStorage.setItem('currentUser', JSON.stringify(updatedUser));
+    
+    // Dispatch custom event for immediate UI updates
+    window.dispatchEvent(new CustomEvent('paymentCompleted', {
+      detail: { userId: currentUser.id }
+    }));
+    
     return true;
   };
 

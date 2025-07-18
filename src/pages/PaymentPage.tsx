@@ -66,6 +66,26 @@ export default function PaymentPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    // Basic form validation
+    if (!cardholderName.trim() || !cardNumber.trim() || !expiryDate.trim() || !cvv.trim()) {
+      toast({
+        title: "Missing Information",
+        description: "Please fill in all payment details.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (cardNumber.replace(/\s/g, '').length !== 16) {
+      toast({
+        title: "Invalid Card Number",
+        description: "Please enter a valid 16-digit card number.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     setIsProcessing(true);
     setProgress(0);
 
@@ -93,8 +113,8 @@ export default function PaymentPage() {
           });
           
           setTimeout(() => {
-            navigate('/profile');
-          }, 2000);
+            navigate('/payment-success');
+          }, 1000);
         }, 500);
       }
     } catch (err) {
@@ -103,6 +123,7 @@ export default function PaymentPage() {
         description: "There was an error processing your payment. Please try again.",
         variant: "destructive",
       });
+      setIsProcessing(false);
     }
     
     clearInterval(progressInterval);
